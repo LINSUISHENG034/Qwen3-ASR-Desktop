@@ -9,3 +9,5 @@ wheel
 requests
 urllib
 srt
+PyQt6>=6.5.0
+python-dotenv>=1.0.0
