@@ -1,3 +1,13 @@
+# AIGC
+.gemini/
+.agent/
+.codex/
+.claude/
+_bmad/
+records/
+.asr_env
+prompts/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
