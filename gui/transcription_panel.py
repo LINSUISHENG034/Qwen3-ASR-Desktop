@@ -16,6 +16,7 @@ from PyQt6.QtWidgets import (
     QFrame,
     QFileDialog,
     QApplication,
+    QTabWidget,
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont
@@ -32,6 +33,8 @@ class TranscriptionPanel(QWidget):
         self.full_text: str = ""
         self.detected_language: str = ""
         self.input_file_path: str = ""
+        self.batch_results: List[Dict] = []
+        self._is_batch_mode = False
         self._setup_ui()
 
     def _setup_ui(self):
@@ -58,7 +61,12 @@ class TranscriptionPanel(QWidget):
 
         layout.addLayout(header_layout)
 
-        # Transcript text area
+        # Tab widget for batch results (hidden by default)
+        self.tab_widget = QTabWidget()
+        self.tab_widget.setVisible(False)
+        layout.addWidget(self.tab_widget, 1)
+
+        # Transcript text area (for single file mode)
         self.transcript_edit = QTextEdit()
         self.transcript_edit.setReadOnly(True)
         self.transcript_edit.setPlaceholderText(
@@ -120,7 +128,12 @@ class TranscriptionPanel(QWidget):
         self.segments = []
         self.full_text = ""
         self.detected_language = ""
+        self.batch_results = []
+        self._is_batch_mode = False
         self.transcript_edit.clear()
+        self.transcript_edit.setVisible(True)
+        self.tab_widget.clear()
+        self.tab_widget.setVisible(False)
         self.language_badge.setVisible(False)
         self.status_label.setText("Ready")
         self._set_export_buttons_enabled(False)
@@ -265,3 +278,61 @@ class TranscriptionPanel(QWidget):
                 self.export_requested.emit("srt")
             except Exception as e:
                 self.status_label.setText(f"✗ Save failed: {str(e)}")
+
+    def add_batch_result(self, file_idx: int, text: str, lang: str, segments: list):
+        """Add a single file's result to the batch view."""
+        import os
+
+        if not self._is_batch_mode:
+            self._is_batch_mode = True
+            self.transcript_edit.setVisible(False)
+            self.tab_widget.setVisible(True)
+
+        # Store result
+        result = {
+            "file_idx": file_idx,
+            "full_text": text,
+            "language": lang,
+            "segments": segments,
+        }
+        self.batch_results.append(result)
+
+        # Create tab for this file
+        tab_content = self._create_result_tab(text, lang, segments)
+        tab_title = f"File {file_idx + 1}"
+        self.tab_widget.addTab(tab_content, tab_title)
+
+    def _create_result_tab(self, text: str, lang: str, segments: list) -> QWidget:
+        """Create a tab widget for a single file's results."""
+        tab = QWidget()
+        layout = QVBoxLayout(tab)
+        layout.setContentsMargins(8, 8, 8, 8)
+
+        # Language label
+        lang_label = QLabel(f"🌐 {lang}")
+        layout.addWidget(lang_label)
+
+        # Text area
+        text_edit = QTextEdit()
+        text_edit.setReadOnly(True)
+        font = QFont("Cascadia Code", 13)
+        font.setStyleHint(QFont.StyleHint.Monospace)
+        text_edit.setFont(font)
+
+        # Format segments
+        display = ""
+        for seg in sorted(segments, key=lambda x: x["index"]):
+            start_str = self._format_time(seg["start"])
+            end_str = self._format_time(seg["end"])
+            display += f"[{start_str} → {end_str}]\n{seg['text']}\n\n"
+        text_edit.setText(display.strip())
+
+        layout.addWidget(text_edit, 1)
+        return tab
+
+    def set_batch_complete(self, results: list):
+        """Finalize batch results with summary."""
+        success = sum(1 for r in results if not r.get("error"))
+        failed = len(results) - success
+        self.status_label.setText(f"✓ Batch: {success} done, {failed} failed")
+        self._set_export_buttons_enabled(success > 0)
