@@ -1,194 +1,197 @@
-# Qwen3-ASR-Toolkit
+# Qwen3-ASR Desktop
 
-[![PyPI version](https://badge.fury.io/py/qwen3-asr-toolkit.svg)](https://badge.fury.io/py/qwen3-asr-toolkit)
 [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)
-[![Also in](https://img.shields.io/badge/Also%20in-Java-orange.svg)](#-implementations-in-other-languages)
+[![PyQt6](https://img.shields.io/badge/GUI-PyQt6-41CD52.svg)](https://www.riverbankcomputing.com/software/pyqt/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Based on](https://img.shields.io/badge/Based%20on-Qwen3--ASR--Toolkit-orange.svg)](https://github.com/QwenLM/Qwen3-ASR-Toolkit)
 
-An advanced, high-performance Python command-line toolkit for using the **Qwen-ASR API** (formerly Qwen3-ASR-Flash). This implementation overcomes the API's 3-minute audio length limitation by intelligently splitting long audio/video files and processing them in parallel, enabling rapid transcription of hours-long content.
+A modern **desktop GUI application** for Qwen-ASR with **batch transcription** support. Built on top of the excellent [Qwen3-ASR-Toolkit](https://github.com/QwenLM/Qwen3-ASR-Toolkit), this project adds a user-friendly graphical interface for non-technical users and power users who need to process multiple files efficiently.
 
-## 🚀 Key Features
-
--   **Break the 3-Minute Limit**: Seamlessly transcribe audio and video files of any length by bypassing the official API's duration constraint.
--   **Smart Audio Splitting**: Utilizes **Voice Activity Detection (VAD)** to split audio into meaningful chunks at natural silent pauses. This ensures that words and sentences are not awkwardly cut off.
--   **High-Speed Parallel Processing**: Leverages multi-threading to send audio chunks to the Qwen-ASR API concurrently, dramatically reducing the total transcription time for long files.
--   **Intelligent Post-Processing**: Automatically detects and removes common ASR **hallucinations and repetitive artifacts** for cleaner, more accurate transcripts.
--   **SRT Subtitle Generation**: Automatically create timestamped **`.srt` subtitle files** based on VAD segments, perfect for adding captions to video content.
--   **Automatic Audio Resampling**: Automatically converts audio from any sample rate and channel count to the 16kHz mono format required by the Qwen-ASR API. You can use any audio file without worrying about pre-processing.
--   **Universal Media Support**: Supports virtually any audio and video format (e.g., `.mp4`, `.mov`, `.mkv`, `.mp3`, `.wav`, `.m4a`) thanks to its reliance on FFmpeg.
--   **Simple & Easy to Use**: A straightforward command-line interface allows you to get started with just a single command.
-
-## ⚙️ How It Works
-
-This tool follows a robust pipeline to deliver fast and accurate transcriptions for long-form media:
-
-1.  **Media Loading**: The script first loads your media file, whether it's a **local file or a remote URL**.
-2.  **VAD-based Chunking**: It analyzes the audio stream using Voice Activity Detection (VAD) to identify silent segments.
-3.  **Intelligent Splitting**: The audio is then split into smaller chunks based on the detected silences. Each chunk's duration is managed to stay under the 3-minute API limit, with a **user-configurable target length (defaulting to 120 seconds)**, preventing mid-sentence cuts.
-4.  **Parallel API Calls**: A thread pool is initiated to upload and process these chunks concurrently using the DashScope Qwen-ASR API.
-5.  **Result Aggregation & Cleaning**: The transcribed text segments from all chunks are collected, re-ordered, and then **post-processed to remove detected repetitions and hallucinations**.
-6.  **Output Generation**: The final, cleaned transcription is printed to the console and saved to a `.txt` file. **Optionally, a timestamped `.srt` subtitle file can also be generated.**
-
-## 🏁 Getting Started
-
-Follow these steps to set up and run the project on your local machine.
-
-### Prerequisites
-
--   Python 3.8 or higher.
--   **FFmpeg**: The script requires FFmpeg to be installed on your system to handle media files.
-    -   **Ubuntu/Debian**: `sudo apt update && sudo apt install ffmpeg`
-    -   **macOS**: `brew install ffmpeg`
-    -   **Windows**: Download from the [official FFmpeg website](https://ffmpeg.org/download.html) and add it to your system's PATH.
--   **DashScope API Key**: You need an API key from Alibaba Cloud's DashScope.
-    -   You can obtain one from the [DashScope Console](https://dashscope.console.aliyun.com/apiKey). If you are calling the API services of Tongyi Qwen for the first time, you can follow the tutorial on [this website](https://help.aliyun.com/zh/model-studio/first-api-call-to-qwen) to create your own API Key.
-    -   For better security and convenience, it is **highly recommended** to set your API key as an environment variable named `DASHSCOPE_API_KEY`. The script will automatically use it, and you won't need to pass the `--api-key` argument in the command.
-
-        **On Linux/macOS:**
-        ```bash
-        export DASHSCOPE_API_KEY="your_api_key_here"
-        ```
-        *(To make this permanent, add the line to your `~/.bashrc`, `~/.zshrc`, or `~/.profile` file.)*
-
-        **On Windows (Command Prompt):**
-        ```cmd
-        set DASHSCOPE_API_KEY="your_api_key_here"
-        ```
-
-        **On Windows (PowerShell):**
-        ```powershell
-        $env:DASHSCOPE_API_KEY="your_api_key_here"
-        ```
-        *(For a permanent setting on Windows, search for "Edit the system environment variables" in the Start Menu and add `DASHSCOPE_API_KEY` to your user variables.)*
-
-### Installation
-
-We recommend installing the tool directly from PyPI for the simplest setup.
-
-#### Option 1: Install from PyPI (Recommended)
-
-Simply run the following command in your terminal. This will install the package and make the `qwen3-asr` command available system-wide.
-
-```bash
-pip install qwen3-asr-toolkit
-```
-
-#### Option 2: Install from Source
-
-If you want to install the latest development version or contribute to the project, you can install from the source code.
-
-1.  Clone the repository:
-    ```bash
-    git clone https://github.com/QwenLM/Qwen3-ASR-Toolkit.git
-    cd Qwen3-ASR-Toolkit
-    ```
-
-2.  Install the package:
-    ```bash
-    pip install .
-    ```
-
-## 📖 Usage
-
-Once installed, you can use the `qwen3-asr` command directly from your terminal. By default, the tool will print progress information.
-
-### Command
-
-```bash
-qwen3-asr -i <input_file_or_url> [-key <api_key>] [-j <num_threads>] [-c <context>] [-d <duration>] [-t <tmp_dir>] [--save-srt] [-s]
-```
-
-### Arguments
-
-| Argument                  | Short  | Description                                                                          | Required/Optional                        |
-| ------------------------- | ------ | ------------------------------------------------------------------------------------ | ---------------------------------------- |
-| `--input-file`            | `-i`   | Path to the local media file or a remote URL (http/https) to transcribe.             | **Required**                             |
-| `--context`               | `-c`   | Text context to guide the ASR model, improving recognition of specific terms.        | Optional, Default: `""`                  |
-| `--dashscope-api-key`     | `-key` | Your DashScope API Key.                                                              | Optional (if `DASHSCOPE_API_KEY` is set) |
-| `--num-threads`           | `-j`   | The number of concurrent threads to use for API calls.                               | Optional, **Default: 4**                 |
-| `--vad-segment-threshold` | `-d`   | Target duration in seconds for each VAD-split audio chunk.                           | Optional, **Default: 120**               |
-| `--tmp-dir`               | `-t`   | Path to a directory for storing temporary chunk files.                               | Optional, Default: `~/qwen3-asr-cache`   |
-| `--save-srt`              | `-srt` | Generate and save a timestamped SRT subtitle file in addition to the `.txt` file.    | Optional                                 |
-| `--silence`               | `-s`   | Silence mode. Suppresses detailed progress and chunking information on the terminal. | Optional                                 |
-
-### Output
-
-The full transcription result will be printed to the terminal (unless in `--silence` mode) and also saved in a `.txt` file in the same directory as the input file. For example, if you process `my_video.mp4`, the output will be saved to `my_video.txt`.
-
-**If you use the `--save-srt` flag, a corresponding `my_video.srt` subtitle file will also be created in the same directory.**
+<p align="center">
+  <img src="docs/screenshots/main-window.png" alt="Main Window" width="800"/>
+</p>
 
 ---
 
-## ✨ Examples
+## What's New in Desktop Edition
 
-Here are a few examples of how to use the tool.
+| Feature | CLI (Original) | Desktop (This Project) |
+|---------|----------------|------------------------|
+| User Interface | Command Line | Modern PyQt6 GUI |
+| Batch Processing | One file at a time | Multiple files with queue |
+| Drag & Drop | Not supported | Full support |
+| Progress Tracking | Text output | Visual progress bars |
+| Result Preview | Save to file only | In-app preview + export |
+| Settings | CLI arguments | Persistent GUI settings |
 
-#### 1. Basic Transcription of a Local File
+---
 
-Transcribe a video file using the default 4 threads. This command assumes you have set the `DASHSCOPE_API_KEY` environment variable.
+## Key Features
+
+### Desktop GUI
+- **Modern Dark Theme** - Easy on the eyes during long transcription sessions
+- **Drag & Drop** - Simply drop files or folders onto the window
+- **Real-time Progress** - Visual feedback for each file and overall batch
+- **In-app Preview** - View transcription results without opening external files
+
+### Batch Processing
+- **Multi-file Queue** - Add unlimited files to the processing queue
+- **Folder Import** - Scan entire folders for media files
+- **Status Tracking** - See pending, processing, done, and error states
+- **Bulk Export** - Export all results to a folder with one click
+
+### Core ASR (Inherited from Qwen3-ASR-Toolkit)
+- **Break the 3-Minute Limit** - Process hours-long audio/video files
+- **VAD-based Splitting** - Smart chunking at natural pauses
+- **Parallel Processing** - Multi-threaded API calls for speed
+- **SRT Generation** - Create subtitle files automatically
+- **11 Languages** - Arabic, Chinese, English, French, German, Italian, Japanese, Korean, Portuguese, Russian, Spanish
+
+---
+
+## Installation
+
+### Prerequisites
+
+- **Python 3.8+**
+- **FFmpeg** - Required for audio/video processing
+  - Windows: Download from [ffmpeg.org](https://ffmpeg.org/download.html) and add to PATH
+  - macOS: `brew install ffmpeg`
+  - Linux: `sudo apt install ffmpeg`
+- **DashScope API Key** - Get yours at [DashScope Console](https://dashscope.console.aliyun.com/apiKey)
+
+### Install from Source
 
 ```bash
-qwen3-asr -i "/path/to/my/long_lecture.mp4"
+# Clone the repository
+git clone https://github.com/LINSUISHENG034/Qwen3-ASR-Desktop.git
+cd Qwen3-ASR-Desktop
+
+# Install dependencies
+pip install -r requirements.txt
+pip install PyQt6
+
+# Run the GUI
+python run_gui.py
 ```
 
-#### 2. Transcribe a Remote Audio File
+### API Key Configuration
 
-Directly process an audio file from a URL.
+**Option 1: Environment Variable (Recommended)**
 
 ```bash
-qwen3-asr -i "https://somewebsite.com/audios/podcast_episode.mp3"
+# Windows (PowerShell)
+$env:DASHSCOPE_API_KEY="your_api_key_here"
+
+# Windows (CMD)
+set DASHSCOPE_API_KEY=your_api_key_here
+
+# Linux/macOS
+export DASHSCOPE_API_KEY="your_api_key_here"
 ```
 
-#### 3. Generate an SRT Subtitle File
+**Option 2: Config File**
 
-Use the `--save-srt` (or `-srt`) flag to generate a timestamped subtitle file alongside the plain text transcript. This is ideal for video captioning.
+Create a `.asr_env` file in the project root:
+```
+DASHSCOPE_API_KEY=your_api_key_here
+```
+
+**Option 3: GUI Settings**
+
+Enter your API key directly in the Settings panel.
+
+---
+
+## Usage
+
+### Launch the GUI
 
 ```bash
-qwen3-asr -i "/path/to/my/documentary.mp4" -srt
+python run_gui.py
 ```
-*This command will create `documentary.txt` and `documentary.srt`.*
 
-#### 4. Increase Concurrency and Pass API Key
+### Quick Start
 
-Transcribe a long audio file using 8 parallel threads and pass the API key directly via the command line.
+1. **Add Files** - Drag & drop media files or click "Browse"
+2. **Configure** - Go to Settings to enter API key and adjust options
+3. **Transcribe** - Click "Start Transcription"
+4. **Export** - View results in-app or export all to a folder
+
+### Supported Formats
+
+| Audio | Video |
+|-------|-------|
+| MP3, WAV, M4A, FLAC, OGG, WMA, AAC | MP4, MKV, AVI, MOV, WebM, WMV, FLV |
+
+### CLI Usage (Original)
+
+The original command-line interface is still available:
 
 ```bash
-qwen3-asr -i "/path/to/my/podcast_episode_01.wav" -j 8 -key "your_api_key_here"
+qwen3-asr -i "/path/to/audio.mp4" -srt
 ```
 
-#### 5. Provide Context and Customize Chunk Duration
+See [CLI Documentation](docs/cli-usage.md) for full options.
 
-If your audio contains specific jargon, use the `-c` flag. If you prefer shorter, more frequent subtitle segments, use `-d` to set a smaller chunk duration.
+---
 
-```bash
-qwen3-asr -i "/path/to/my/tech_talk.mp4" -c "Qwen-ASR, DashScope, FFmpeg" -d 60 -srt
+## Settings
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| API Key | DashScope API key | From env |
+| Threads | Parallel API calls | 4 |
+| VAD Threshold | Chunk duration (seconds) | 120 |
+| Context | Domain-specific terms | Empty |
+| Save SRT | Generate subtitle files | Off |
+
+---
+
+## Project Structure
+
 ```
-*This command will try to split the audio into chunks around 60 seconds long, which can result in more granular subtitles.*
-
-#### 6. Run in Silence Mode
-
-Use the `-s` or `--silence` flag to prevent progress details from being printed to the terminal. The final transcript will still be saved to a file.
-
-```bash
-qwen3-asr -i "/path/to/my/meeting_recording.m4a" -s
+qwen3-asr-desktop/
+├── gui/                    # PyQt6 GUI components
+│   ├── main_window.py      # Main application window
+│   ├── settings_panel.py   # Settings configuration
+│   ├── transcription_panel.py
+│   ├── worker_thread.py    # Background processing
+│   └── styles.py           # Theme and styling
+├── qwen3_asr_toolkit/      # Core ASR logic (from upstream)
+├── run_gui.py              # GUI entry point
+└── README.md
 ```
 
-## 🌍 Implementations in Other Languages
+---
 
-While this project provides a full-featured Python toolkit, we also host implementations in other programming languages to demonstrate how the same core logic can be applied across different technology stacks. We warmly welcome the community to contribute examples in more languages!
+## Acknowledgments
 
-### ☕ Java Example
+This project is built on top of [Qwen3-ASR-Toolkit](https://github.com/QwenLM/Qwen3-ASR-Toolkit) by QwenLM. The core ASR functionality, including VAD-based chunking, parallel processing, and hallucination removal, comes from the original project.
 
-We have provided a Java version as a standalone example located in the `examples/java-example` directory of this repository. This example showcases how to implement the key features of the toolkit—including VAD-based audio chunking, parallel API requests, and result aggregation—using Java. It serves as a great starting point for Java developers looking to integrate Qwen-ASR into their applications.
+**What this project adds:**
+- PyQt6 desktop GUI
+- Batch file processing
+- Drag & drop support
+- Visual progress tracking
+- In-app result preview
 
-### How to Contribute Your Version
+---
 
-If you have implemented a similar toolkit in another language (e.g., **Go**, **Rust**, **C#**, **JavaScript/Node.js**), we would love to feature it! Please open a pull request to add your implementation to the `examples` directory. For more details on contributing, see the [Contributing](#-contributing) section below.
+## Contributing
 
-## 🤝 Contributing
+Contributions are welcome! Please feel free to submit issues and pull requests.
 
-Contributions are welcome! If you have suggestions for improvements, please feel free to fork the repo, create a feature branch, and open a pull request. You can also open an issue with the "enhancement" tag.
+---
 
-## 📄 License
+## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT License - see [LICENSE](LICENSE) for details.
+
+---
+
+## Links
+
+- [Original Qwen3-ASR-Toolkit](https://github.com/QwenLM/Qwen3-ASR-Toolkit)
+- [DashScope Console](https://dashscope.console.aliyun.com/)
+- [Qwen Model Documentation](https://help.aliyun.com/zh/model-studio/)
