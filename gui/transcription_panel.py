@@ -1,6 +1,7 @@
 """
 Transcription Panel for Qwen3-ASR GUI
 Displays transcription results with real-time updates and export capabilities
+Master-detail pattern: shows result for currently selected file
 """
 
 from typing import List, Dict, Optional
@@ -16,7 +17,6 @@ from PyQt6.QtWidgets import (
     QFrame,
     QFileDialog,
     QApplication,
-    QTabWidget,
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont
@@ -33,47 +33,39 @@ class TranscriptionPanel(QWidget):
         self.full_text: str = ""
         self.detected_language: str = ""
         self.input_file_path: str = ""
-        self.batch_results: List[Dict] = []
-        self._is_batch_mode = False
         self._setup_ui()
 
     def _setup_ui(self):
         """Initialize the UI components."""
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(16)
+        layout.setSpacing(12)
 
         # Header
         header_layout = QHBoxLayout()
         header_layout.setSpacing(12)
 
-        self.title_label = QLabel("Transcription Results")
-        self.title_label.setObjectName("heading")
+        self.title_label = QLabel("Transcription Result")
+        self.title_label.setObjectName("subheading")
         header_layout.addWidget(self.title_label)
 
         header_layout.addStretch()
 
         # Language badge
-        self.language_badge = QLabel("—")
+        self.language_badge = QLabel("")
         self.language_badge.setObjectName("badge")
         self.language_badge.setVisible(False)
         header_layout.addWidget(self.language_badge)
 
         layout.addLayout(header_layout)
 
-        # Tab widget for batch results (hidden by default)
-        self.tab_widget = QTabWidget()
-        self.tab_widget.setVisible(False)
-        layout.addWidget(self.tab_widget, 1)
-
-        # Transcript text area (for single file mode)
+        # Transcript text area
         self.transcript_edit = QTextEdit()
         self.transcript_edit.setReadOnly(True)
         self.transcript_edit.setPlaceholderText(
-            "Your transcription will appear here...\n\n"
-            "Drag and drop an audio/video file above, then click 'Transcribe' to begin."
+            "Select a file from the list above to view its transcription.\n\n"
+            "Click 'Start Transcription' to begin processing."
         )
-        self.transcript_edit.setMinimumHeight(200)
 
         # Set modern monospace font
         font = QFont("Cascadia Code", 13)
@@ -82,12 +74,9 @@ class TranscriptionPanel(QWidget):
 
         layout.addWidget(self.transcript_edit, 1)
 
-        # Export buttons container
-        export_frame = QFrame()
-        export_frame.setObjectName("card")
-        export_layout = QHBoxLayout(export_frame)
-        export_layout.setContentsMargins(16, 12, 16, 12)
-        export_layout.setSpacing(12)
+        # Export buttons row
+        export_layout = QHBoxLayout()
+        export_layout.setSpacing(8)
 
         # Status info
         self.status_label = QLabel("Ready")
@@ -97,27 +86,27 @@ class TranscriptionPanel(QWidget):
         export_layout.addStretch()
 
         # Copy to clipboard
-        self.copy_btn = QPushButton("📋 Copy")
+        self.copy_btn = QPushButton("Copy")
         self.copy_btn.setToolTip("Copy transcription to clipboard")
         self.copy_btn.clicked.connect(self._copy_to_clipboard)
         self.copy_btn.setEnabled(False)
         export_layout.addWidget(self.copy_btn)
 
         # Save as TXT
-        self.save_txt_btn = QPushButton("💾 Save TXT")
+        self.save_txt_btn = QPushButton("Save TXT")
         self.save_txt_btn.setToolTip("Save as plain text file")
         self.save_txt_btn.clicked.connect(self._save_txt)
         self.save_txt_btn.setEnabled(False)
         export_layout.addWidget(self.save_txt_btn)
 
         # Save as SRT
-        self.save_srt_btn = QPushButton("🎬 Save SRT")
+        self.save_srt_btn = QPushButton("Save SRT")
         self.save_srt_btn.setToolTip("Save as subtitle file")
         self.save_srt_btn.clicked.connect(self._save_srt)
         self.save_srt_btn.setEnabled(False)
         export_layout.addWidget(self.save_srt_btn)
 
-        layout.addWidget(export_frame)
+        layout.addLayout(export_layout)
 
     def set_input_file(self, file_path: str):
         """Store input file path for default save location."""
@@ -128,14 +117,10 @@ class TranscriptionPanel(QWidget):
         self.segments = []
         self.full_text = ""
         self.detected_language = ""
-        self.batch_results = []
-        self._is_batch_mode = False
         self.transcript_edit.clear()
-        self.transcript_edit.setVisible(True)
-        self.tab_widget.clear()
-        self.tab_widget.setVisible(False)
         self.language_badge.setVisible(False)
         self.status_label.setText("Ready")
+        self.title_label.setText("Transcription Result")
         self._set_export_buttons_enabled(False)
 
     def append_segment(self, index: int, text: str, start: float, end: float):
@@ -158,13 +143,21 @@ class TranscriptionPanel(QWidget):
 
     def set_full_result(self, full_text: str, language: str, segments: List[Dict]):
         """Set the complete transcription result."""
+        import os
+
         self.full_text = full_text
         self.detected_language = language
         self.segments = segments
 
+        # Update title with filename if available
+        if self.input_file_path:
+            filename = os.path.basename(self.input_file_path)
+            self.title_label.setText(f"Result: {filename}")
+
         # Update language badge
-        self.language_badge.setText(f"🌐 {language}")
-        self.language_badge.setVisible(True)
+        if language:
+            self.language_badge.setText(language)
+            self.language_badge.setVisible(True)
 
         # Build formatted display
         display_text = ""
@@ -177,7 +170,7 @@ class TranscriptionPanel(QWidget):
 
         # Enable export buttons
         self._set_export_buttons_enabled(True)
-        self.status_label.setText(f"✓ Complete • {len(segments)} segments")
+        self.status_label.setText(f"Complete - {len(segments)} segments")
 
     def set_status(self, status: str):
         """Update status label."""
@@ -205,7 +198,7 @@ class TranscriptionPanel(QWidget):
         """Copy full text to system clipboard."""
         clipboard = QApplication.clipboard()
         clipboard.setText(self.full_text)
-        self.status_label.setText("✓ Copied to clipboard!")
+        self.status_label.setText("Copied to clipboard")
         self.export_requested.emit("clipboard")
 
     def _save_txt(self):
@@ -230,10 +223,10 @@ class TranscriptionPanel(QWidget):
                 with open(file_path, "w", encoding="utf-8") as f:
                     f.write(f"{self.detected_language}\n")
                     f.write(f"{self.full_text}\n")
-                self.status_label.setText(f"✓ Saved to {os.path.basename(file_path)}")
+                self.status_label.setText(f"Saved to {os.path.basename(file_path)}")
                 self.export_requested.emit("txt")
             except Exception as e:
-                self.status_label.setText(f"✗ Save failed: {str(e)}")
+                self.status_label.setText(f"Save failed: {str(e)}")
 
     def _save_srt(self):
         """Save transcription as SRT subtitle file."""
@@ -242,7 +235,7 @@ class TranscriptionPanel(QWidget):
         try:
             import srt
         except ImportError:
-            self.status_label.setText("✗ srt module not installed")
+            self.status_label.setText("srt module not installed")
             return
 
         # Suggest default filename
@@ -274,65 +267,7 @@ class TranscriptionPanel(QWidget):
                 with open(file_path, "w", encoding="utf-8") as f:
                     f.write(srt.compose(subtitles))
 
-                self.status_label.setText(f"✓ Saved to {os.path.basename(file_path)}")
+                self.status_label.setText(f"Saved to {os.path.basename(file_path)}")
                 self.export_requested.emit("srt")
             except Exception as e:
-                self.status_label.setText(f"✗ Save failed: {str(e)}")
-
-    def add_batch_result(self, file_idx: int, text: str, lang: str, segments: list):
-        """Add a single file's result to the batch view."""
-        import os
-
-        if not self._is_batch_mode:
-            self._is_batch_mode = True
-            self.transcript_edit.setVisible(False)
-            self.tab_widget.setVisible(True)
-
-        # Store result
-        result = {
-            "file_idx": file_idx,
-            "full_text": text,
-            "language": lang,
-            "segments": segments,
-        }
-        self.batch_results.append(result)
-
-        # Create tab for this file
-        tab_content = self._create_result_tab(text, lang, segments)
-        tab_title = f"File {file_idx + 1}"
-        self.tab_widget.addTab(tab_content, tab_title)
-
-    def _create_result_tab(self, text: str, lang: str, segments: list) -> QWidget:
-        """Create a tab widget for a single file's results."""
-        tab = QWidget()
-        layout = QVBoxLayout(tab)
-        layout.setContentsMargins(8, 8, 8, 8)
-
-        # Language label
-        lang_label = QLabel(f"🌐 {lang}")
-        layout.addWidget(lang_label)
-
-        # Text area
-        text_edit = QTextEdit()
-        text_edit.setReadOnly(True)
-        font = QFont("Cascadia Code", 13)
-        font.setStyleHint(QFont.StyleHint.Monospace)
-        text_edit.setFont(font)
-
-        # Format segments
-        display = ""
-        for seg in sorted(segments, key=lambda x: x["index"]):
-            start_str = self._format_time(seg["start"])
-            end_str = self._format_time(seg["end"])
-            display += f"[{start_str} → {end_str}]\n{seg['text']}\n\n"
-        text_edit.setText(display.strip())
-
-        layout.addWidget(text_edit, 1)
-        return tab
-
-    def set_batch_complete(self, results: list):
-        """Finalize batch results with summary."""
-        success = sum(1 for r in results if not r.get("error"))
-        failed = len(results) - success
-        self.status_label.setText(f"✓ Batch: {success} done, {failed} failed")
-        self._set_export_buttons_enabled(success > 0)
+                self.status_label.setText(f"Save failed: {str(e)}")

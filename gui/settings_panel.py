@@ -42,43 +42,57 @@ class SettingsPanel(QWidget):
         # ─────────────────────────────────────────────────────────────
         # API Key Section
         # ─────────────────────────────────────────────────────────────
-        api_group = QGroupBox("🔑 API Configuration")
+        api_group = QGroupBox("API Configuration")
         api_layout = QVBoxLayout(api_group)
         api_layout.setSpacing(12)
 
-        api_desc = QLabel("Enter your DashScope API key for Qwen-ASR access")
-        api_desc.setObjectName("subheading")
-        api_layout.addWidget(api_desc)
+        # API key row with inline status
+        api_row = QHBoxLayout()
+        api_row.setSpacing(12)
 
-        api_input_layout = QHBoxLayout()
-        api_input_layout.setSpacing(10)
+        api_label = QLabel("DashScope API Key")
+        api_label.setMinimumWidth(130)
+        api_row.addWidget(api_label)
 
         self.api_key_input = QLineEdit()
         self.api_key_input.setPlaceholderText("sk-xxxxxxxxxxxxxxxxxxxxxxxx")
         self.api_key_input.setEchoMode(QLineEdit.EchoMode.Password)
         self.api_key_input.textChanged.connect(self._on_api_key_changed)
-        api_input_layout.addWidget(self.api_key_input, 1)
+        api_row.addWidget(self.api_key_input, 1)
 
-        self.toggle_visibility_btn = QPushButton("👁")
-        self.toggle_visibility_btn.setFixedWidth(40)
+        self.toggle_visibility_btn = QPushButton("Show")
+        self.toggle_visibility_btn.setObjectName("ghostButton")
+        self.toggle_visibility_btn.setFixedWidth(60)
         self.toggle_visibility_btn.setCheckable(True)
         self.toggle_visibility_btn.toggled.connect(self._toggle_api_visibility)
         self.toggle_visibility_btn.setToolTip("Show/hide API key")
-        api_input_layout.addWidget(self.toggle_visibility_btn)
+        api_row.addWidget(self.toggle_visibility_btn)
 
-        api_layout.addLayout(api_input_layout)
+        api_layout.addLayout(api_row)
 
-        # API status indicator
-        self.api_status = QLabel("⚪ No API key configured")
-        self.api_status.setObjectName("subheading")
-        api_layout.addWidget(self.api_status)
+        # Status row with link
+        status_row = QHBoxLayout()
+        status_row.setSpacing(8)
+
+        self.api_status = QLabel("Not configured")
+        self.api_status.setObjectName("apiStatusLabel")
+        status_row.addWidget(self.api_status)
+
+        status_row.addStretch()
+
+        api_link = QLabel('<a href="https://dashscope.console.aliyun.com/apiKey" style="color: #3b82f6;">Get API Key</a>')
+        api_link.setOpenExternalLinks(True)
+        api_link.setObjectName("linkLabel")
+        status_row.addWidget(api_link)
+
+        api_layout.addLayout(status_row)
 
         layout.addWidget(api_group)
 
         # ─────────────────────────────────────────────────────────────
         # Processing Settings
         # ─────────────────────────────────────────────────────────────
-        processing_group = QGroupBox("⚙️ Processing Settings")
+        processing_group = QGroupBox("Processing Settings")
         processing_layout = QVBoxLayout(processing_group)
         processing_layout.setSpacing(16)
 
@@ -147,36 +161,55 @@ class SettingsPanel(QWidget):
         # ─────────────────────────────────────────────────────────────
         # Output Settings
         # ─────────────────────────────────────────────────────────────
-        output_group = QGroupBox("📁 Output Settings")
+        output_group = QGroupBox("Output Settings")
         output_layout = QVBoxLayout(output_group)
-        output_layout.setSpacing(12)
+        output_layout.setSpacing(16)
 
-        # Auto-save options
-        self.save_txt_checkbox = QCheckBox("Auto-save TXT file")
+        # Export formats section
+        format_label = QLabel("Auto-save Formats")
+        format_label.setObjectName("settingLabel")
+        output_layout.addWidget(format_label)
+
+        # Format checkboxes in horizontal layout
+        format_row = QHBoxLayout()
+        format_row.setSpacing(20)
+
+        self.save_txt_checkbox = QCheckBox("TXT")
         self.save_txt_checkbox.setChecked(True)
-        output_layout.addWidget(self.save_txt_checkbox)
+        self.save_txt_checkbox.setToolTip("Plain text transcription")
+        format_row.addWidget(self.save_txt_checkbox)
 
-        self.save_srt_checkbox = QCheckBox("Auto-save SRT subtitle file")
+        self.save_srt_checkbox = QCheckBox("SRT")
         self.save_srt_checkbox.setChecked(False)
-        output_layout.addWidget(self.save_srt_checkbox)
+        self.save_srt_checkbox.setToolTip("Subtitle file with timestamps")
+        format_row.addWidget(self.save_srt_checkbox)
+
+        self.save_json_checkbox = QCheckBox("JSON")
+        self.save_json_checkbox.setChecked(False)
+        self.save_json_checkbox.setToolTip("Structured data with segments")
+        format_row.addWidget(self.save_json_checkbox)
+
+        format_row.addStretch()
+        output_layout.addLayout(format_row)
 
         # Temp directory
-        temp_layout = QHBoxLayout()
-        temp_layout.setSpacing(10)
-
         temp_label = QLabel("Cache Directory")
-        temp_layout.addWidget(temp_label)
+        temp_label.setObjectName("settingLabel")
+        output_layout.addWidget(temp_label)
+
+        temp_row = QHBoxLayout()
+        temp_row.setSpacing(10)
 
         self.temp_dir_input = QLineEdit()
         self.temp_dir_input.setPlaceholderText(os.path.join(os.path.expanduser("~"), "qwen3-asr-cache"))
         self.temp_dir_input.setText(os.path.join(os.path.expanduser("~"), "qwen3-asr-cache"))
-        temp_layout.addWidget(self.temp_dir_input, 1)
+        temp_row.addWidget(self.temp_dir_input, 1)
 
-        browse_btn = QPushButton("Browse...")
+        browse_btn = QPushButton("Browse")
         browse_btn.clicked.connect(self._browse_temp_dir)
-        temp_layout.addWidget(browse_btn)
+        temp_row.addWidget(browse_btn)
 
-        output_layout.addLayout(temp_layout)
+        output_layout.addLayout(temp_row)
 
         layout.addWidget(output_group)
 
@@ -187,9 +220,13 @@ class SettingsPanel(QWidget):
         """Handle API key input change."""
         self._api_key = text.strip()
         if self._api_key:
-            self.api_status.setText("🟢 API key configured")
+            # Show masked key length
+            key_len = len(self._api_key)
+            self.api_status.setText(f"Configured ({key_len} chars)")
+            self.api_status.setStyleSheet("color: #22c55e;")
         else:
-            self.api_status.setText("⚪ No API key configured")
+            self.api_status.setText("Not configured")
+            self.api_status.setStyleSheet("color: #71717a;")
         self.settings_changed.emit()
 
     def _on_thread_changed(self, value: int):
@@ -201,10 +238,10 @@ class SettingsPanel(QWidget):
         """Toggle API key visibility."""
         if checked:
             self.api_key_input.setEchoMode(QLineEdit.EchoMode.Normal)
-            self.toggle_visibility_btn.setText("🙈")
+            self.toggle_visibility_btn.setText("Hide")
         else:
             self.api_key_input.setEchoMode(QLineEdit.EchoMode.Password)
-            self.toggle_visibility_btn.setText("👁")
+            self.toggle_visibility_btn.setText("Show")
 
     def _browse_temp_dir(self):
         """Open folder browser for temp directory."""
@@ -242,6 +279,14 @@ class SettingsPanel(QWidget):
     def get_save_srt(self) -> bool:
         """Check if SRT auto-save is enabled."""
         return self.save_srt_checkbox.isChecked()
+
+    def get_save_json(self) -> bool:
+        """Check if JSON auto-save is enabled."""
+        return self.save_json_checkbox.isChecked()
+
+    def get_save_txt(self) -> bool:
+        """Check if TXT auto-save is enabled."""
+        return self.save_txt_checkbox.isChecked()
 
     def get_temp_dir(self) -> str:
         """Get temp directory path."""
