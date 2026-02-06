@@ -4,10 +4,11 @@
 .codex/
 .claude/
 _bmad/
+_bmad-output/
 records/
 .asr_env
 prompts/
-docs/
+docs/idea/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

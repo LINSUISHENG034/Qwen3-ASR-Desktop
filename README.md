@@ -8,7 +8,15 @@
 A modern **desktop GUI application** for Qwen-ASR with **batch transcription** support. Built on top of the excellent [Qwen3-ASR-Toolkit](https://github.com/QwenLM/Qwen3-ASR-Toolkit), this project adds a user-friendly graphical interface for non-technical users and power users who need to process multiple files efficiently.
 
 <p align="center">
-  <img src="docs/screenshots/main-window.png" alt="Main Window" width="800"/>
+  <img src="docs/screenshots/main-window.png" alt="Empty State - Drag & Drop Zone" width="700"/>
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/multi-files-window.png" alt="Batch Processing - Multiple Files" width="700"/>
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/setting-window.png" alt="Settings Panel" width="700"/>
 </p>
 
 ---
